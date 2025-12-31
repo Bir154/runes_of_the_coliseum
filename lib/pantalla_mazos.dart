@@ -42,7 +42,8 @@ class _PantallaMazosState extends State<PantallaMazos> {
           for (int j = 0; j < 10; j++) {
             if (ids[j] != "vacio") {
               try {
-                misMazos[i][j] = arsenalMaestro.firstWhere((h) => h.ID == ids[j]);
+                int idNumerico = int.parse(ids[j]);
+                misMazos[i][j] = arsenalMaestro.firstWhere((h) => h.ID == idNumerico);
               } catch (e) {
                 misMazos[i][j] = null;
               }
