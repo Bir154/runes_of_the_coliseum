@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:math'; 
-import 'package:shared_preferences/shared_preferences.dart'; // 1. Memoria [cite: 2025-11-10]
+import 'dart:math';
+import 'dart:async'; // ← Necesario para `unawaited`
+import 'package:shared_preferences/shared_preferences.dart';
 import 'arsenal.dart';
 import 'pantalla_album.dart';
 
@@ -11,47 +12,68 @@ class PantallaMazos extends StatefulWidget {
 }
 
 class _PantallaMazosState extends State<PantallaMazos> {
-  // Estructura de 6 mazos [cite: 2025-11-10]
+  // Estructura de 6 mazos
   static List<List<Habilidad?>> misMazos = List.generate(
-    6, 
+    6,
     (_) => List.filled(10, null),
   );
 
   @override
   void initState() {
     super.initState();
-    _cargarMazosDeMemoria(); // Carga inicial [cite: 2025-11-10]
+    _cargarMazosDeMemoria();
   }
 
   // --- PERSISTENCIA DE DATOS ---
-  Future<void> _guardarMazosEnMemoria() async {
-    final prefs = await SharedPreferences.getInstance();
-    for (int i = 0; i < 6; i++) {
-      // Opción A: Conversión segura a String para evitar errores [cite: 2025-11-10]
-      List<String> ids = misMazos[i].map((h) => h?.ID.toString() ?? "vacio").toList();
-      await prefs.setStringList('mazo_runico_$i', ids);
-    }
-  }
 
   Future<void> _cargarMazosDeMemoria() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      for (int i = 0; i < 6; i++) {
-        List<String>? ids = prefs.getStringList('mazo_runico_$i');
-        if (ids != null) {
-          for (int j = 0; j < 10; j++) {
-            if (ids[j] != "vacio") {
-              try {
-                int idNumerico = int.parse(ids[j]);
-                misMazos[i][j] = arsenalMaestro.firstWhere((h) => h.ID == idNumerico);
-              } catch (e) {
-                misMazos[i][j] = null;
+
+    // Reiniciar todos los mazos a 10 slots vacíos
+    for (int i = 0; i < 6; i++) {
+      misMazos[i] = List.filled(10, null);
+    }
+
+    // Cargar desde SharedPreferences
+    for (int i = 0; i < 6; i++) {
+      List<String>? ids = prefs.getStringList('mazo_runico_$i');
+      if (ids != null) {
+        for (int j = 0; j < 10 && j < ids.length; j++) {
+          if (ids[j] != "vacio") {
+            try {
+              int idNumerico = int.parse(ids[j]);
+              Habilidad? encontrada;
+              for (var h in arsenalMaestro) {
+                if (h.ID == idNumerico) {
+                  encontrada = h;
+                  break;
+                }
               }
+              misMazos[i][j] = encontrada;
+            } catch (e) {
+              misMazos[i][j] = null;
             }
           }
         }
       }
-    });
+    }
+
+    // Actualizar la UI solo si el widget aún está activo
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _guardarMazosEnMemoria() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (int i = 0; i < 6; i++) {
+      List<String> ids = misMazos[i]
+          .map((h) => h?.ID.toString() ?? "vacio")
+          .toList();
+      // Asegurar que siempre haya 10 elementos
+      while (ids.length < 10) ids.add("vacio");
+      await prefs.setStringList('mazo_runico_$i', ids);
+    }
   }
 
   @override
@@ -65,7 +87,7 @@ class _PantallaMazosState extends State<PantallaMazos> {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(20),
-        itemCount: 6, 
+        itemCount: 6,
         itemBuilder: (context, index) => _buildMazoEntry(index),
       ),
     );
@@ -81,15 +103,15 @@ class _PantallaMazosState extends State<PantallaMazos> {
         await Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => DetalleMazo(
-            numeroMazo: index + 1, 
+            numeroMazo: index + 1,
             cartas: misMazos[index],
             onChanged: () {
               setState(() {});
-              _guardarMazosEnMemoria(); // Guardado automático [cite: 2025-11-10]
+              unawaited(_guardarMazosEnMemoria()); // ← Corregido
             },
           )),
         );
-        setState(() {}); 
+        setState(() {});
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 25),
@@ -109,10 +131,10 @@ class _PantallaMazosState extends State<PantallaMazos> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("MAZO ${index + 1}", 
+                  Text("MAZO ${index + 1}",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: esHorizontal ? 14 : 18)),
                   const SizedBox(height: 5),
-                  Text("${mazoLleno.length} / 10 CARTAS", 
+                  Text("${mazoLleno.length} / 10 CARTAS",
                     style: const TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -120,15 +142,15 @@ class _PantallaMazosState extends State<PantallaMazos> {
             Expanded(
               flex: esHorizontal ? 8 : 7,
               child: AspectRatio(
-                aspectRatio: esHorizontal ? 10 / 1.2 : 5 / 2.8, 
+                aspectRatio: esHorizontal ? 10 / 1.2 : 5 / 2.8,
                 child: GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: esHorizontal ? 10 : 5, 
-                    crossAxisSpacing: 4, 
-                    mainAxisSpacing: 4, 
-                    childAspectRatio: 0.7 
+                    crossAxisCount: esHorizontal ? 10 : 5,
+                    crossAxisSpacing: 4,
+                    mainAxisSpacing: 4,
+                    childAspectRatio: 0.7
                   ),
                   itemCount: 10,
                   itemBuilder: (context, i) {
@@ -159,10 +181,10 @@ class _PantallaMazosState extends State<PantallaMazos> {
     int dfs = mazo.where((h) => h.Rol == "DFS").length;
     int std = mazo.where((h) => h.Rol == "STD").length;
 
-    const Color verdeEquilibrio = Color(0xFF1DE9B6); 
-    const Color cyanPalido = Color(0xFFB2EBF2);    
-    const Color rosaPalido = Color(0xFFFFD1DC);    
-    const Color moradoMate = Color(0xFF673AB7);    
+    const Color verdeEquilibrio = Color(0xFF1DE9B6);
+    const Color cyanPalido = Color(0xFFB2EBF2);
+    const Color rosaPalido = Color(0xFFFFD1DC);
+    const Color moradoMate = Color(0xFF673AB7);
 
     if (atk >= 5 && atk > dfs && atk > std) return Colors.redAccent;
     if (dfs >= 5 && dfs > atk && dfs > std) return Colors.blueAccent;
@@ -185,6 +207,9 @@ class _PantallaMazosState extends State<PantallaMazos> {
   }
 }
 
+// --- Clases DetalleMazo y CartaUltraCompacta (sin cambios) ---
+// (Tu código original a partir de aquí ya estaba correcto)
+
 class DetalleMazo extends StatefulWidget {
   final int numeroMazo;
   final List<Habilidad?> cartas;
@@ -206,7 +231,7 @@ class _DetalleMazoState extends State<DetalleMazo> {
   void _generarMazoAleatorio() {
     final random = Random();
     List<Habilidad> copiaArsenal = List.from(arsenalMaestro);
-    copiaArsenal.shuffle(random); 
+    copiaArsenal.shuffle(random);
     setState(() {
       for (int i = 0; i < 10; i++) {
         widget.cartas[i] = copiaArsenal[i];
@@ -221,7 +246,7 @@ class _DetalleMazoState extends State<DetalleMazo> {
       context,
       MaterialPageRoute(builder: (context) => PantallaAlbum(
         esModoSeleccion: true,
-        cartasOmitidas: idsActuales, 
+        cartasOmitidas: idsActuales,
       )),
     );
     if (seleccion != null) {
@@ -247,7 +272,7 @@ class _DetalleMazoState extends State<DetalleMazo> {
             title: const Text("VER DETALLES", style: TextStyle(color: Colors.white)),
             onTap: () {
               Navigator.pop(context);
-              _abrirVistaDetalle(carta); 
+              _abrirVistaDetalle(carta);
             },
           ),
           ListTile(
@@ -339,14 +364,13 @@ class _DetalleMazoState extends State<DetalleMazo> {
         title: Text("EDICIÓN MAZO ${widget.numeroMazo}", style: const TextStyle(letterSpacing: 2)),
         backgroundColor: Colors.black,
         actions: [
-          // BOTÓN DE BORRAR TODO EL MAZO [cite: 2025-11-10]
           IconButton(
             icon: const Icon(Icons.delete_sweep, color: Colors.redAccent),
             onPressed: () {
               setState(() {
                 for (int i = 0; i < 10; i++) widget.cartas[i] = null;
               });
-              widget.onChanged(); 
+              widget.onChanged();
             },
           ),
           IconButton(
@@ -367,16 +391,16 @@ class _DetalleMazoState extends State<DetalleMazo> {
               itemBuilder: (context, index) {
                 final carta = widget.cartas[index];
                 return GestureDetector(
-                  onTap: () => _gestionarSlot(index, carta), 
-                  child: carta == null 
+                  onTap: () => _gestionarSlot(index, carta),
+                  child: carta == null
                     ? Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white10, width: 2), 
+                          border: Border.all(color: Colors.white10, width: 2),
                           color: Colors.white.withOpacity(0.02)
                         ),
                         child: const Icon(Icons.add_circle_outline, color: Colors.white24, size: 50),
                       )
-                    : CartaUltraCompacta(habilidad: carta), 
+                    : CartaUltraCompacta(habilidad: carta),
                 );
               },
             ),
@@ -388,14 +412,14 @@ class _DetalleMazoState extends State<DetalleMazo> {
   }
 
   Widget _buildAnalisisVertical(List<Habilidad> mazo, int total) {
-    double atkP = total == 0 ? 0 : (mazo.where((h) => h.Rol == "ATK").length / total) * 100; 
-    double dfsP = total == 0 ? 0 : (mazo.where((h) => h.Rol == "DFS").length / total) * 100; 
-    double stdP = total == 0 ? 0 : (mazo.where((h) => h.Rol == "STD").length / total) * 100; 
+    double atkP = total == 0 ? 0 : (mazo.where((h) => h.Rol == "ATK").length / total) * 100;
+    double dfsP = total == 0 ? 0 : (mazo.where((h) => h.Rol == "DFS").length / total) * 100;
+    double stdP = total == 0 ? 0 : (mazo.where((h) => h.Rol == "STD").length / total) * 100;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D0D0D), 
+        color: const Color(0xFF0D0D0D),
         border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1), width: 2))
       ),
       child: Column(
@@ -405,8 +429,8 @@ class _DetalleMazoState extends State<DetalleMazo> {
           _filaAnalisis("CARTAS DE ESTADO", stdP, Colors.white),
           const SizedBox(height: 10),
           Text(
-            "TOTAL: $total / 10", 
-            style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3) 
+            "TOTAL: $total / 10",
+            style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3)
           ),
         ],
       ),
@@ -419,10 +443,89 @@ class _DetalleMazoState extends State<DetalleMazo> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(nombre, style: TextStyle(color: col, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2)), 
+          Text(nombre, style: TextStyle(color: col, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           Text("${porc.toStringAsFixed(0)}%", style: TextStyle(color: col, fontSize: 22, fontWeight: FontWeight.w900)),
         ],
       ),
     );
   }
+}
+
+// --- Widget CartaUltraCompacta (sin cambios) ---
+
+class CartaUltraCompacta extends StatelessWidget {
+  final Habilidad habilidad;
+  const CartaUltraCompacta({required this.habilidad});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      double anchoCarta = constraints.maxWidth;
+      double fSize = anchoCarta * 0.05;
+      double grosorBorde = anchoCarta * 0.02;
+      double intensidadBrillo = anchoCarta * 0.08;
+
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D0D0D),
+          border: Border.all(color: habilidad.Color_Marco, width: grosorBorde),
+          boxShadow: [
+            BoxShadow(color: habilidad.Color_Marco.withOpacity(0.4), blurRadius: intensidadBrillo, spreadRadius: 1),
+          ],
+        ),
+        child: Column(children: [
+          Container(
+            height: constraints.maxHeight * 0.07,
+            width: double.infinity,
+            color: Colors.black45,
+            alignment: Alignment.center,
+            child: FittedBox(child: Text(habilidad.Name.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: fSize, color: Colors.white))),
+          ),
+          const Expanded(child: Center(child: Icon(Icons.shield, color: Colors.white10, size: 30))),
+          Container(
+            height: constraints.maxHeight * 0.13,
+            color: Colors.black,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(children: [
+              Expanded(
+                flex: 3,
+                child: Container(
+                  decoration: const BoxDecoration(border: Border(right: BorderSide(color: Colors.white10))),
+                  child: Padding(
+                    padding: EdgeInsets.all(anchoCarta * 0.03),
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Text(
+                        "NV:${habilidad.NV}",
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                      )
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 6,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _miniStat("PDR", habilidad.PDR, fSize),
+                    _miniStat("ATQ", habilidad.ATQ, fSize),
+                    _miniStat("DEF", habilidad.DEF, fSize),
+                  ],
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      );
+    });
+  }
+
+  Widget _miniStat(String label, int val, double size) => Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text(label, style: TextStyle(fontSize: size * 0.7, color: Colors.white38, fontWeight: FontWeight.bold)),
+      Text("$val", style: TextStyle(fontSize: size * 0.9, fontWeight: FontWeight.bold, color: Colors.white)),
+    ],
+  );
 }
