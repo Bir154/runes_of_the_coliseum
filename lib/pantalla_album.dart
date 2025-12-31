@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'arsenal.dart';
 
 class PantallaAlbum extends StatefulWidget {
-  const PantallaAlbum({super.key});
+  final bool esModoSeleccion;
+  final List<int> cartasOmitidas;
+  const PantallaAlbum({super.key, this.esModoSeleccion = false, this.cartasOmitidas = const []});
   @override
   State<PantallaAlbum> createState() => _PantallaAlbumState();
 }
@@ -21,13 +23,14 @@ class _PantallaAlbumState extends State<PantallaAlbum> {
   @override // FILTRADO DINÁMICO
   Widget build(BuildContext context) {
     final listaFiltrada = arsenalMaestro.where((h) {
-      // Filtrado por nombre
       final coincideNombre = h.Name.toLowerCase().contains(_query.toLowerCase());
-      // Filtrado por nivel
       final coincideNivel = _nivelesSeleccionados.isEmpty || _nivelesSeleccionados.contains(h.NV);
-      // Filtrado por color
       final coincideColor = _coloresSeleccionados.isEmpty || _coloresSeleccionados.contains(h.Color_Marco);
-      return coincideNombre && coincideNivel && coincideColor;
+      
+      // NUEVO: Verifica que el ID de la carta no esté en la lista negra [cite: 2025-12-30]
+      final noEstaRepetida = !widget.cartasOmitidas.contains(h.ID); 
+      
+      return coincideNombre && coincideNivel && coincideColor && noEstaRepetida;
     }).toList();
 
     return Scaffold(
@@ -156,8 +159,14 @@ class _PantallaAlbumState extends State<PantallaAlbum> {
         ),
         itemCount: listaFiltrada.length,
         itemBuilder: (context, index) => GestureDetector(
-          onTap: () => _verDetalle(context, listaFiltrada[index]),
-          child: _CartaUltraCompacta(habilidad: listaFiltrada[index]),
+          onTap: () {
+            if (widget.esModoSeleccion) {
+             _confirmarSeleccion(context, listaFiltrada[index]);
+            } else {
+              _verDetalle(context, listaFiltrada[index]);
+            }
+         },
+         child: CartaUltraCompacta(habilidad: listaFiltrada[index]),
         ),
       ),
     );
@@ -327,12 +336,41 @@ class _PantallaAlbumState extends State<PantallaAlbum> {
       ),
     );
   }
+  // AQUÍ ES DONDE DEBE IR REALMENTE [cite: 2025-11-10]
+  void _confirmarSeleccion(BuildContext context, Habilidad carta) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0D0D0D),
+        shape: RoundedRectangleBorder(
+            side: BorderSide(color: carta.Color_Marco, width: 1), 
+            borderRadius: BorderRadius.circular(15)),
+        title: Text("¿ASIGNAR CARTA?", 
+            style: TextStyle(color: carta.Color_Marco, fontSize: 14, letterSpacing: 2)),
+        content: Text("¿Deseas agregar ${carta.Name.toUpperCase()} a este espacio del mazo?", 
+            style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: const Text("CANCELAR", style: TextStyle(color: Colors.white24))),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); 
+              Navigator.pop(context, carta);
+            },
+            child: Text("ACEPTAR", 
+                style: TextStyle(color: carta.Color_Marco, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ESTE ES EL MOLDE ORIGINAL DEL APK - MOLDE DE CARTA
-class _CartaUltraCompacta extends StatelessWidget {
+class CartaUltraCompacta extends StatelessWidget {
   final Habilidad habilidad;
-  const _CartaUltraCompacta({required this.habilidad});
+  const CartaUltraCompacta({required this.habilidad});
 
   @override
   Widget build(BuildContext context) {

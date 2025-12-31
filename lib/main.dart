@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'pantalla_album.dart'; // Importante: Esto conecta con el archivo del álbum
+import 'pantalla_album.dart'; 
+import 'pantalla_mazos.dart'; // 1. YA ESTÁ DESCOMENTADO PARA CONECTAR EL ARCHIVO
 
 void main() {
   runApp(const RunesOfColiseum());
@@ -46,9 +47,8 @@ class Portada extends StatelessWidget {
                 ),
                 const SizedBox(height: 60),
 
-                // Botón al ÁLBUM con la lógica de navegación real
+                // Botón al ÁLBUM
                 _buildMenuButton(context, 'ÁLBUM', () {
-                  // Esta línea es la que hace que el navegador cambie de pantalla
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const PantallaAlbum()),
@@ -57,10 +57,21 @@ class Portada extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Botón al MAZO (Aún sin función hasta que lo programemos)
+                // Botón al MAZO (AHORA CONECTADO A PANTALLAMAZOS)
                 _buildMenuButton(context, 'MAZO', () {
-                  print("Módulo del Mazo en desarrollo...");
+                  // 2. CAMBIADO EL PRINT POR LA NAVEGACIÓN REAL
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PantallaMazos()),
+                  );
                 }),
+
+                const SizedBox(height: 20),
+
+                // Botón COMBATE (Nuevo)
+                _buildMenuButton(context, 'COMBATE', () {
+                  print("Iniciando modo combate...");
+                }, esCombate: true),
               ],
             ),
           ),
@@ -83,23 +94,28 @@ class Portada extends StatelessWidget {
     );
   }
 
-  // Función para crear botones uniformes
-  Widget _buildMenuButton(BuildContext context, String text, VoidCallback onPressed) {
+  // Función para crear botones uniformes con opción de resaltar Combate
+  Widget _buildMenuButton(BuildContext context, String text, VoidCallback onPressed, {bool esCombate = false}) {
     return SizedBox(
       width: 240,
       height: 50,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Colors.white38, width: 2),
+          side: BorderSide(
+            color: esCombate ? Colors.redAccent : Colors.white38, 
+            width: 2
+          ),
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          backgroundColor: esCombate ? Colors.redAccent.withOpacity(0.1) : Colors.transparent,
         ),
         child: Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             letterSpacing: 3,
-            color: Colors.white,
+            color: esCombate ? Colors.redAccent : Colors.white,
+            fontWeight: esCombate ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),
