@@ -8,18 +8,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # Actualizado a v4
-      - uses: actions/setup-java@v4 # Actualizado a v4
+      - uses: actions/checkout@v4 
+      - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '11'   # ← ¡CAMBIA ESTO A 11!
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
       - run: flutter pub get
+      - run: dart run flutter_launcher_icons  # ← ¡NO OLVIDES ESTO!
       - run: flutter build apk --release
       - name: Upload APK
-        uses: actions/upload-artifact@v4 # ¡ESTA ES LA LÍNEA CRÍTICA QUE FALLÓ!
+        uses: actions/upload-artifact@v4 
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
