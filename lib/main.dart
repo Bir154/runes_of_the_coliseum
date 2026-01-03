@@ -45,33 +45,27 @@ class Portada extends StatelessWidget {
                     letterSpacing: 6,
                   ),
                 ),
-                const SizedBox(height: 60),
-
-                // Botón al ÁLBUM
-                _buildMenuButton(context, 'ÁLBUM', () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const PantallaAlbum()),
-                  );
-                }),
-
-                const SizedBox(height: 20),
-
-                // Botón al MAZO (AHORA CONECTADO A PANTALLAMAZOS)
-                _buildMenuButton(context, 'MAZO', () {
-                  // 2. CAMBIADO EL PRINT POR LA NAVEGACIÓN REAL
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const PantallaMazos()),
-                  );
-                }),
-
-                const SizedBox(height: 20),
-
-                // Botón COMBATE (Nuevo)
-                _buildMenuButton(context, 'COMBATE', () {
-                  print("Iniciando modo combate...");
-                }, esCombate: true),
+                const SizedBox(height: 40),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Wrap(
+                    direction: Axis.horizontal, 
+                    alignment: WrapAlignment.center,
+                    spacing: 25,    // Espacio horizontal (cuando es Fila)
+                    runSpacing: 20, // Espacio vertical (cuando es Columna)
+                    children: [
+                      _buildMenuButton(context, 'ÁLBUM', () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const PantallaAlbum()));
+                      }),
+                      _buildMenuButton(context, 'MAZO', () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const PantallaMazos()));
+                      }),
+                      _buildMenuButton(context, 'COMBATE', () {
+                        print("Iniciando modo combate...");
+                      }, esCombate: true),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -81,7 +75,9 @@ class Portada extends StatelessWidget {
             bottom: 20,
             right: 25,
             child: Text(
-              'V.0.1.',
+              //AQUÍ LA NOTA DE LA VERSIÓN DE LA APP ----------------------------------------------->>>>>>
+              'V.0.5',
+              //AQUÍ LA NOTA DE LA VERSIÓN DE LA APP -----------------------------------------------<<<<<<
               style: TextStyle(
                 color: Colors.white24,
                 fontSize: 14,

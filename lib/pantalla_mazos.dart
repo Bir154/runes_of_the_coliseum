@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'dart:async'; // ← Necesario para `unawaited`
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'arsenal.dart';
 import 'pantalla_album.dart';
@@ -12,7 +12,6 @@ class PantallaMazos extends StatefulWidget {
 }
 
 class _PantallaMazosState extends State<PantallaMazos> {
-  // Estructura de 6 mazos
   static List<List<Habilidad?>> misMazos = List.generate(
     6,
     (_) => List.filled(10, null),
@@ -24,57 +23,56 @@ class _PantallaMazosState extends State<PantallaMazos> {
     _cargarMazosDeMemoria();
   }
 
-  // --- PERSISTENCIA DE DATOS ---
-
   Future<void> _cargarMazosDeMemoria() async {
-    final prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
 
-    // Reiniciar todos los mazos a 10 slots vacíos
-    for (int i = 0; i < 6; i++) {
-      misMazos[i] = List.filled(10, null);
-    }
+  // Reiniciar todos los mazos a 10 slots vacíos
+  for (int i = 0; i < 6; i++) {
+    misMazos[i] = List.filled(10, null);
+  }
 
-    // Cargar desde SharedPreferences
-    for (int i = 0; i < 6; i++) {
-      List<String>? ids = prefs.getStringList('mazo_runico_$i');
-      if (ids != null) {
-        for (int j = 0; j < 10 && j < ids.length; j++) {
-          if (ids[j] != "vacio") {
-            try {
-              int idNumerico = int.parse(ids[j]);
-              Habilidad? encontrada;
-              for (var h in arsenalMaestro) {
-                if (h.ID == idNumerico) {
-                  encontrada = h;
-                  break;
-                }
+  // Cargar desde SharedPreferences
+  for (int i = 0; i < 6; i++) {
+    List<String>? ids = prefs.getStringList('mazo_runico_$i');
+    if (ids != null) {
+      for (int j = 0; j < 10 && j < ids.length; j++) {
+        if (ids[j] != "vacio") {
+          try {
+            int idNumerico = int.parse(ids[j]);
+            Habilidad? encontrada;
+            // Buscar manualmente en el arsenal
+            for (var h in arsenalMaestro) {
+              if (h.ID == idNumerico) {
+                encontrada = h;
+                break;
               }
-              misMazos[i][j] = encontrada;
-            } catch (e) {
-              misMazos[i][j] = null;
             }
+            misMazos[i][j] = encontrada;
+          } catch (e) {
+            misMazos[i][j] = null;
           }
         }
       }
     }
-
-    // Actualizar la UI solo si el widget aún está activo
-    if (mounted) {
-      setState(() {});
-    }
   }
 
-  Future<void> _guardarMazosEnMemoria() async {
-    final prefs = await SharedPreferences.getInstance();
-    for (int i = 0; i < 6; i++) {
-      List<String> ids = misMazos[i]
-          .map((h) => h?.ID.toString() ?? "vacio")
-          .toList();
-      // Asegurar que siempre haya 10 elementos
-      while (ids.length < 10) ids.add("vacio");
-      await prefs.setStringList('mazo_runico_$i', ids);
-    }
+  // Actualizar la UI solo si el widget aún está activo
+  if (mounted) {
+    setState(() {});
   }
+}
+
+Future<void> _guardarMazosEnMemoria() async {
+  final prefs = await SharedPreferences.getInstance();
+  for (int i = 0; i < 6; i++) {
+    List<String> ids = misMazos[i]
+        .map((h) => h?.ID.toString() ?? "vacio")
+        .toList();
+    // Asegurar que siempre haya 10 elementos
+    while (ids.length < 10) ids.add("vacio");
+    await prefs.setStringList('mazo_runico_$i', ids);
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +105,7 @@ class _PantallaMazosState extends State<PantallaMazos> {
             cartas: misMazos[index],
             onChanged: () {
               setState(() {});
-              unawaited(_guardarMazosEnMemoria()); // ← Corregido
+              unawaited(_guardarMazosEnMemoria());
             },
           )),
         );
@@ -119,9 +117,7 @@ class _PantallaMazosState extends State<PantallaMazos> {
         decoration: BoxDecoration(
           border: Border.all(color: colorBorde, width: 2),
           color: Colors.white.withOpacity(0.05),
-          boxShadow: [
-            BoxShadow(color: colorBorde.withOpacity(0.3), blurRadius: 10, spreadRadius: 1)
-          ],
+          boxShadow: [BoxShadow(color: colorBorde.withOpacity(0.3), blurRadius: 10, spreadRadius: 1)],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -130,43 +126,45 @@ class _PantallaMazosState extends State<PantallaMazos> {
               flex: esHorizontal ? 2 : 3,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("MAZO ${index + 1}",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: esHorizontal ? 14 : 18)),
+                  Text("MAZO ${index + 1}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: esHorizontal ? 14 : 18)),
                   const SizedBox(height: 5),
-                  Text("${mazoLleno.length} / 10 CARTAS",
-                    style: const TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                  Text("${mazoLleno.length} / 10 CARTAS", style: const TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
+            const SizedBox(width: 10),
             Expanded(
               flex: esHorizontal ? 8 : 7,
-              child: AspectRatio(
-                aspectRatio: esHorizontal ? 10 / 1.2 : 5 / 2.8,
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: esHorizontal ? 10 : 5,
-                    crossAxisSpacing: 4,
-                    mainAxisSpacing: 4,
-                    childAspectRatio: 0.7
-                  ),
-                  itemCount: 10,
-                  itemBuilder: (context, i) {
-                    final c = misMazos[index][i];
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0D0D0D),
-                        image: c != null ? DecorationImage(image: AssetImage(c.Image), fit: BoxFit.cover) : null,
-                        border: Border.all(color: c == null ? Colors.white12 : c.Color_Marco, width: 1.5),
-                        boxShadow: [
-                          if (c != null) BoxShadow(color: c.Color_Marco.withOpacity(0.5), blurRadius: 5)
-                        ],
-                      ),
-                    );
-                  },
+              child: GridView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: esHorizontal ? 10 : 5,
+                  crossAxisSpacing: 4,
+                  mainAxisSpacing: 4,
+                  childAspectRatio: esHorizontal ? 0.75 : 0.8,
                 ),
+                itemCount: 10,
+                itemBuilder: (context, i) {
+                  final c = misMazos[index][i];
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D0D0D),
+                      image: c != null ? DecorationImage(image: AssetImage(c.Image), fit: BoxFit.cover) : null,
+                      border: Border.all(color: c == null ? Colors.white12 : c.Color_Marco, width: 1.5),
+                      boxShadow: [
+                        if (c != null) BoxShadow(
+                          color: c.Color_Marco.withOpacity(0.4),
+                          blurRadius: 4,
+                          spreadRadius: 0.5,
+                        )
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -207,19 +205,19 @@ class _PantallaMazosState extends State<PantallaMazos> {
   }
 }
 
-// --- Clases DetalleMazo y CartaUltraCompacta (sin cambios) ---
-// (Tu código original a partir de aquí ya estaba correcto)
-
 class DetalleMazo extends StatefulWidget {
   final int numeroMazo;
   final List<Habilidad?> cartas;
   final VoidCallback onChanged;
   const DetalleMazo({super.key, required this.numeroMazo, required this.cartas, required this.onChanged});
+
   @override
   State<DetalleMazo> createState() => _DetalleMazoState();
 }
 
 class _DetalleMazoState extends State<DetalleMazo> {
+  bool _mostrarDetalles = false;
+
   void _gestionarSlot(int index, Habilidad? cartaActual) {
     if (cartaActual == null) {
       _abrirSelector(index);
@@ -244,10 +242,7 @@ class _DetalleMazoState extends State<DetalleMazo> {
     final idsActuales = widget.cartas.where((c) => c != null).map((c) => c!.ID).toList();
     final Habilidad? seleccion = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => PantallaAlbum(
-        esModoSeleccion: true,
-        cartasOmitidas: idsActuales,
-      )),
+      MaterialPageRoute(builder: (context) => PantallaAlbum(esModoSeleccion: true, cartasOmitidas: idsActuales)),
     );
     if (seleccion != null) {
       setState(() => widget.cartas[index] = seleccion);
@@ -256,11 +251,12 @@ class _DetalleMazoState extends State<DetalleMazo> {
   }
 
   void _mostrarOpciones(int index, Habilidad carta) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF0D0D0D),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Column(
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: const Color(0xFF0D0D0D),
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (context) => SingleChildScrollView(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
@@ -295,55 +291,50 @@ class _DetalleMazoState extends State<DetalleMazo> {
           const SizedBox(height: 20),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _abrirVistaDetalle(Habilidad hab) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Color(0xFF0D0D0D),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(30),
-          child: Column(
-            children: [
-              Container(
-                width: 200, height: 280,
-                decoration: BoxDecoration(
-                  image: DecorationImage(image: AssetImage(hab.Image), fit: BoxFit.cover),
-                  border: Border.all(color: hab.Color_Marco, width: 3),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [BoxShadow(color: hab.Color_Marco.withOpacity(0.5), blurRadius: 20)],
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF0A0A0A),
+    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width),
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (context) {
+      return OrientationBuilder(
+        builder: (context, orientation) {
+          final esHorizontal = orientation == Orientation.landscape;
+          final size = MediaQuery.of(context).size;
+
+          return Container(
+            height: esHorizontal ? size.height * 0.92 : size.height * 0.85,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(hab.Name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _miniChip("PDR", hab.PDR.toString(), Colors.amber),
-                  const SizedBox(width: 8),
-                  _miniChip("ATQ", hab.ATQ.toString(), Colors.red),
-                  const SizedBox(width: 8),
-                  _miniChip("DEF", hab.DEF.toString(), Colors.blue),
-                ],
-              ),
-              const Divider(color: Colors.white10, height: 40),
-              Text(hab.Descripcion, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 16, fontStyle: FontStyle.italic)),
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+                const SizedBox(height: 20),
+                Expanded(
+                  child: CartaDetalle(habilidad: hab, esHorizontal: esHorizontal),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _miniChip(String label, String value, Color color) {
     return Container(
@@ -357,6 +348,8 @@ class _DetalleMazoState extends State<DetalleMazo> {
   Widget build(BuildContext context) {
     final mazoValido = widget.cartas.whereType<Habilidad>().toList();
     int total = mazoValido.length;
+    bool esHorizontal = MediaQuery.of(context).orientation == Orientation.landscape;
+    int columnas = esHorizontal ? 5 : 2; // ← 2 en vertical, 5 en horizontal
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -384,8 +377,11 @@ class _DetalleMazoState extends State<DetalleMazo> {
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.all(20),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, childAspectRatio: 0.8, crossAxisSpacing: 20, mainAxisSpacing: 20
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columnas,
+                childAspectRatio: 0.8,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
               ),
               itemCount: 10,
               itemBuilder: (context, index) {
@@ -393,48 +389,69 @@ class _DetalleMazoState extends State<DetalleMazo> {
                 return GestureDetector(
                   onTap: () => _gestionarSlot(index, carta),
                   child: carta == null
-                    ? Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white10, width: 2),
-                          color: Colors.white.withOpacity(0.02)
-                        ),
-                        child: const Icon(Icons.add_circle_outline, color: Colors.white24, size: 50),
-                      )
-                    : CartaUltraCompacta(habilidad: carta),
+                      ? Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white10, width: 2),
+                            color: Colors.white.withOpacity(0.02),
+                          ),
+                          child: const Icon(Icons.add_circle_outline, color: Colors.white24, size: 50),
+                        )
+                      : CartaResumen(habilidad: carta), // ← Usa el widget centralizado
                 );
               },
             ),
           ),
-          _buildAnalisisVertical(mazoValido, total),
+          // BOTÓN DETALLES + MENÚ DESPLEGABLE
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D0D0D),
+              border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1), width: 2)),
+            ),
+            child: Column(
+              children: [
+                OutlinedButton(
+                  onPressed: () => setState(() => _mostrarDetalles = !_mostrarDetalles),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.amber, width: 1),
+                    backgroundColor: Colors.amber.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text("DETALLES", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                      Icon(
+                        _mostrarDetalles ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        color: Colors.amber,
+                      ),
+                    ],
+                  ),
+                ),
+                if (_mostrarDetalles) ...[
+                  const SizedBox(height: 10),
+                  ..._buildAnalisisDetalles(mazoValido, total),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAnalisisVertical(List<Habilidad> mazo, int total) {
+  List<Widget> _buildAnalisisDetalles(List<Habilidad> mazo, int total) {
     double atkP = total == 0 ? 0 : (mazo.where((h) => h.Rol == "ATK").length / total) * 100;
     double dfsP = total == 0 ? 0 : (mazo.where((h) => h.Rol == "DFS").length / total) * 100;
     double stdP = total == 0 ? 0 : (mazo.where((h) => h.Rol == "STD").length / total) * 100;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D0D0D),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1), width: 2))
-      ),
-      child: Column(
-        children: [
-          _filaAnalisis("CARTAS OFENSIVAS", atkP, Colors.red),
-          _filaAnalisis("CARTAS DEFENSIVAS", dfsP, Colors.blue),
-          _filaAnalisis("CARTAS DE ESTADO", stdP, Colors.white),
-          const SizedBox(height: 10),
-          Text(
-            "TOTAL: $total / 10",
-            style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3)
-          ),
-        ],
-      ),
-    );
+    return [
+      _filaAnalisis("CARTAS OFENSIVAS", atkP, Colors.red),
+      _filaAnalisis("CARTAS DEFENSIVAS", dfsP, Colors.blue),
+      _filaAnalisis("CARTAS DE ESTADO", stdP, Colors.white),
+      const SizedBox(height: 10),
+      Text("TOTAL: $total / 10", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3)),
+    ];
   }
 
   Widget _filaAnalisis(String nombre, double porc, Color col) {
@@ -449,83 +466,4 @@ class _DetalleMazoState extends State<DetalleMazo> {
       ),
     );
   }
-}
-
-// --- Widget CartaUltraCompacta (sin cambios) ---
-
-class CartaUltraCompacta extends StatelessWidget {
-  final Habilidad habilidad;
-  const CartaUltraCompacta({required this.habilidad});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      double anchoCarta = constraints.maxWidth;
-      double fSize = anchoCarta * 0.05;
-      double grosorBorde = anchoCarta * 0.02;
-      double intensidadBrillo = anchoCarta * 0.08;
-
-      return Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF0D0D0D),
-          border: Border.all(color: habilidad.Color_Marco, width: grosorBorde),
-          boxShadow: [
-            BoxShadow(color: habilidad.Color_Marco.withOpacity(0.4), blurRadius: intensidadBrillo, spreadRadius: 1),
-          ],
-        ),
-        child: Column(children: [
-          Container(
-            height: constraints.maxHeight * 0.07,
-            width: double.infinity,
-            color: Colors.black45,
-            alignment: Alignment.center,
-            child: FittedBox(child: Text(habilidad.Name.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: fSize, color: Colors.white))),
-          ),
-          const Expanded(child: Center(child: Icon(Icons.shield, color: Colors.white10, size: 30))),
-          Container(
-            height: constraints.maxHeight * 0.13,
-            color: Colors.black,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(children: [
-              Expanded(
-                flex: 3,
-                child: Container(
-                  decoration: const BoxDecoration(border: Border(right: BorderSide(color: Colors.white10))),
-                  child: Padding(
-                    padding: EdgeInsets.all(anchoCarta * 0.03),
-                    child: FittedBox(
-                      fit: BoxFit.contain,
-                      child: Text(
-                        "NV:${habilidad.NV}",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-                      )
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 6,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _miniStat("PDR", habilidad.PDR, fSize),
-                    _miniStat("ATQ", habilidad.ATQ, fSize),
-                    _miniStat("DEF", habilidad.DEF, fSize),
-                  ],
-                ),
-              ),
-            ]),
-          ),
-        ]),
-      );
-    });
-  }
-
-  Widget _miniStat(String label, int val, double size) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Text(label, style: TextStyle(fontSize: size * 0.7, color: Colors.white38, fontWeight: FontWeight.bold)),
-      Text("$val", style: TextStyle(fontSize: size * 0.9, fontWeight: FontWeight.bold, color: Colors.white)),
-    ],
-  );
 }

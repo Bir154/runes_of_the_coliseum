@@ -15,7 +15,315 @@ class Habilidad {
   Habilidad({
     required this.ID, required this.Name, required this.Descripcion, required this.NV, required this.PDR, required this.ATQ,
     required this.DEF, required this.Color_Marco, required this.Image, required this.Rol,
+  });
+}
+
+// ====== WIDGET: CARTA EN LISTA (RESUMEN) ======
+class CartaResumen extends StatelessWidget {
+  final Habilidad habilidad;
+  const CartaResumen({super.key, required this.habilidad});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      double anchoCarta = constraints.maxWidth;
+      double fSize = anchoCarta * 0.05;
+      double grosorBorde = anchoCarta * 0.02; 
+      double intensidadBrillo = anchoCarta * 0.08; 
+
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D0D0D),
+          border: Border.all(color: habilidad.Color_Marco, width: grosorBorde),
+          boxShadow: [BoxShadow(color: habilidad.Color_Marco.withOpacity(0.4), blurRadius: intensidadBrillo, spreadRadius: 1)],
+        ),
+        child: Column(children: [
+          Container(
+            height: constraints.maxHeight * 0.07,
+            width: double.infinity,
+            color: Colors.black45,
+            alignment: Alignment.center,
+            child: FittedBox(child: Text(habilidad.Name.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: fSize, color: Colors.white))),
+          ),
+          const Expanded(child: Center(child: Icon(Icons.shield, color: Colors.white10, size: 30))),
+          Container(
+            height: constraints.maxHeight * 0.13,
+            color: Colors.black,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(children: [
+              Expanded(
+                flex: 3,
+                child: Container(
+                  decoration: const BoxDecoration(border: Border(right: BorderSide(color: Colors.white10))),
+                  child: Padding(
+                    padding: EdgeInsets.all(anchoCarta * 0.03),
+                    child: FittedBox(fit: BoxFit.contain, child: Text("NV:${habilidad.NV}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 6,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _miniStat("PDR", habilidad.PDR, fSize),
+                    _miniStat("ATQ", habilidad.ATQ, fSize),
+                    _miniStat("DEF", habilidad.DEF, fSize),
+                  ],
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      );
     });
+  }
+
+  Widget _miniStat(String label, int val, double size) => Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text(label, style: TextStyle(fontSize: size * 0.7, color: Colors.white38, fontWeight: FontWeight.bold)),
+      Text("$val", style: TextStyle(fontSize: size * 0.9, fontWeight: FontWeight.bold, color: Colors.white)),
+    ],
+  );
+}
+
+// ====== WIDGET: CARTA EN MODO DETALLE (MODAL) ======
+// ====== WIDGET: CARTA EN MODO DETALLE (MODAL) ======
+class CartaDetalle extends StatelessWidget {
+  final Habilidad habilidad;
+  final bool esHorizontal;
+
+  const CartaDetalle({
+    super.key,
+    required this.habilidad,
+    required this.esHorizontal,
+  });
+
+  // Mapeo de rol técnico a nombre legible
+  String _rolLegible(String rol) {
+    switch (rol) {
+      case "ATK": return "OFENSIVA";
+      case "DFS": return "DEFENSIVA";
+      case "STD": return "ESTADO";
+      default: return "DESCONOCIDO";
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return esHorizontal
+        ? _buildHorizontal(context)
+        : _buildVertical(context);
+  }
+
+  Widget _buildVertical(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: _buildImagen(context)),
+          const SizedBox(height: 30),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                habilidad.Name.toUpperCase(),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              Text(
+                "NV: ${habilidad.NV}",
+                style: const TextStyle(fontSize: 20, color: Colors.amber, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          
+          const Divider(color: Colors.white10, height: 40),
+          const Text("CARACTERÍSTICAS", style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 15),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(10)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _statDetalle("PODER RÚNICO", habilidad.PDR),
+                _statDetalle("ATAQUE", habilidad.ATQ),
+                _statDetalle("DEFENSA", habilidad.DEF),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+          const Text("DESCRIPCIÓN", style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Text(
+            habilidad.Descripcion,
+            style: const TextStyle(color: Colors.white70, fontSize: 16, height: 1.5, fontStyle: FontStyle.italic),
+          ),
+          const SizedBox(height: 50),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHorizontal(BuildContext context) {
+    // ignore: unused_local_variable
+    final size = MediaQuery.of(context).size;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 4,
+          child: _buildImagen(context),
+        ),
+        const SizedBox(width: 25),
+        Container(
+          width: 100,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("STATS", style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+              _statDetalleVertical("PDR", habilidad.PDR),
+              _statDetalleVertical("ATQ", habilidad.ATQ),
+              _statDetalleVertical("DEF", habilidad.DEF),
+            ],
+          ),
+        ),
+        const SizedBox(width: 25),
+        Expanded(
+          flex: 5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      habilidad.Name.toUpperCase(),
+                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                  Text(
+                    "NV: ${habilidad.NV}",
+                    style: const TextStyle(fontSize: 22, color: Colors.amber, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              
+              const Divider(color: Colors.white10, height: 30),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("DESCRIPCIÓN", style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(
+                        habilidad.Descripcion,
+                        style: const TextStyle(color: Colors.white70, fontSize: 16, height: 1.5, fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _rolColor(String rol) {
+    switch (rol) {
+      case "ATK": return Colors.red;
+      case "DFS": return Colors.blue;
+      case "STD": return Colors.white;
+      default: return Colors.grey;
+    }
+  }
+
+    Widget _buildImagen(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      child: Stack(
+        children: [
+          AspectRatio(
+            aspectRatio: 0.75,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF121212),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: habilidad.Color_Marco, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: habilidad.Color_Marco.withOpacity(0.5),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  )
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.shield,
+                  size: 80,
+                  color: habilidad.Color_Marco.withOpacity(0.3),
+                ),
+              ),
+            ),
+          ),
+          // Etiqueta de rol en la esquina superior derecha
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: _rolColor(habilidad.Rol).withOpacity(0.85),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.black, width: 1),
+              ),
+              child: Text(
+                _rolLegible(habilidad.Rol),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statDetalleVertical(String etiqueta, dynamic valor) {
+    return Container(
+      width: 90,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        children: [
+          Text(etiqueta, style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+          Text("$valor", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _statDetalle(String etiqueta, dynamic valor) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(etiqueta, style: const TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 2),
+        Text("$valor", style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
 }
 
 final List<Habilidad> arsenalMaestro = [
